@@ -1,0 +1,20 @@
+Program Name: HBV Hydrologic Model (Modified Version Used in the below Publications)
+
+Citations:
+AghaKouchak A., Habib E., 2010, Application of a Conceptual Hydrologic Model in Teaching Hydrologic Processes, International Journal of Engineering Education, 26(4), 963-973.
+
+AghaKouchak A., Nakhjiri N., and Habib E., 2012, An educational model for ensemble streamflow simulation and uncertainty analysis, Hydrology and Earth System Sciences Discussions, 9, 7297-7315, doi:10.5194/hessd-9-7297-2012.
+
+
+Disclaimer:
+This program (hereafter, software) is designed for instructional and educational use only. Research and commercial use is prohibited. The software is provided 'as is' without warranty of any kind, either express or implied. The software could include technical or other mistakes, inaccuracies or typographical errors. The use of the software is done at your own discretion and risk and with agreement that you will be solely responsible for any damage and that the authors and their affiliate institutions accept no responsibility for errors or omissions in the software or documentation. In no event shall the authors or their affiliate institutions be liable to you or any third parties for any special, indirect or consequential damages of any kind, or any damages whatsoever.
+
+
+For technical questions contact:
+Dr. Amir AghaKouchak, P.E.
+Dept. Civil & Environmental Engineering
+University of California Irvine
+amir.a@uci.edu
+
+Acknowledgment:
+I am pleased to acknowledge the contribution of Naveen Duggi (graduate research assistant at the University of Louisiana at Lafayette) in development of the model. I am grateful to colleagues who have given so generously of their time providing valuable comments and suggestions for improvement. These individuals include Mehdi Rezaeian Zadeh, Jeff Tuhtan, Nasrin Nasrollahi, and Aaron LaFramboise. I offer special thanks to students of Watershed Modeling class (University of California, Irvine - CEE 173 & 273 - Winter 2011) who participated in a survey on their learning gains. I apologize to those whose names unintentionally might have been omitted.
