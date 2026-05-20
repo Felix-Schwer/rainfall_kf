@@ -77,17 +77,19 @@ def HBVTransition(states: np.ndarray, inputs: np.ndarray, params: HBVParameters 
 
     below_threshold = temp < tt
     melt = d * (temp - tt)
+    soil_nonnegative = np.maximum(soil, 0.0)
 
     snow_next = np.where(below_threshold, snow + prec, np.maximum(snow - melt, 0.0))
     lwater = np.where(below_threshold, 0.0, prec + np.minimum(snow, melt))
 
-    pe = (1.0 + c * (temp - temp_m)) * dpem
-    ea = np.where(soil > pwp, pe, pe * (soil / pwp))
-    dq = lwater * ((soil / fc) ** beta)
+    pe = np.maximum((1.0 + c * (temp - temp_m)) * dpem, 0.0)
+    ea = np.where(soil > pwp, pe, pe * (soil_nonnegative / pwp))
+    dq = lwater * ((soil_nonnegative / fc) ** beta)
+    dq = np.clip(dq, 0.0, lwater)
 
-    s1_next = s1 + dq - (np.maximum(0.0, s1 - l) * k0) - (s1 * k1) - (s1 * kp)
-    s2_next = s2 + (s1 * kp) - (s2 * k2)
-    soil_next = soil + lwater - dq - ea
+    s1_next = np.maximum(s1 + dq - (np.maximum(0.0, s1 - l) * k0) - (s1 * k1) - (s1 * kp), 0.0)
+    s2_next = np.maximum(s2 + (s1 * kp) - (s2 * k2), 0.0)
+    soil_next = np.maximum(soil + lwater - dq - ea, 0.0)
 
     return np.vstack([snow_next, soil_next, s1_next, s2_next, s1])
 
