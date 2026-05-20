@@ -49,7 +49,7 @@ class FilterResult:
         
         fig, axes = plt.subplots(n_states, 1, figsize = (12, 3*n_states))
         if n_states == 1:
-            axes = [axes]
+            axes = np.atleast_1d(axes)
 
         for i in range(n_states):
             ax = axes[i]
@@ -73,7 +73,7 @@ class FilterResult:
 
         fig, axes = plt.subplots(n_obs, 1, figsize=(12, 3*n_obs))
         if n_obs == 1:
-            axes = [axes]
+            axes = np.atleast_1d(axes)
 
         for i in range(n_obs):
             ax = axes[i]
@@ -91,7 +91,7 @@ class FilterResult:
 
         fig, axes = plt.subplots(n_obs, 1, figsize=(12, 3*n_obs))
         if n_obs == 1:
-            axes = [axes]
+            axes = np.atleast_1d(axes)
 
         for i in range(n_obs):
             ax = axes[i]
@@ -111,7 +111,7 @@ class FilterResult:
 
         fig, axes = plt.subplots(n_obs, 1, figsize=(12, 3*n_obs))
         if n_obs == 1:
-            axes = [axes]
+            axes = np.atleast_1d(axes)
 
         for i in range(n_obs):
             ax = axes[i]
