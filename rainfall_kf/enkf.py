@@ -48,6 +48,8 @@ class FilterResult:
         n_ensemble = self.ensembles.shape[2]
         
         fig, axes = plt.subplots(n_states, 1, figsize = (12, 3*n_states))
+        if n_states == 1:
+            axes = [axes]
 
         for i in range(n_states):
             ax = axes[i]
@@ -70,6 +72,8 @@ class FilterResult:
         n_obs = self.predicted_observations.shape[1]
 
         fig, axes = plt.subplots(n_obs, 1, figsize=(12, 3*n_obs))
+        if n_obs == 1:
+            axes = [axes]
 
         for i in range(n_obs):
             ax = axes[i]
@@ -86,6 +90,8 @@ class FilterResult:
         n_obs = self.innovations.shape[1]
 
         fig, axes = plt.subplots(n_obs, 1, figsize=(12, 3*n_obs))
+        if n_obs == 1:
+            axes = [axes]
 
         for i in range(n_obs):
             ax = axes[i]
@@ -104,6 +110,8 @@ class FilterResult:
         n_obs = self.whitened_innovations.shape[1]
 
         fig, axes = plt.subplots(n_obs, 1, figsize=(12, 3*n_obs))
+        if n_obs == 1:
+            axes = [axes]
 
         for i in range(n_obs):
             ax = axes[i]
