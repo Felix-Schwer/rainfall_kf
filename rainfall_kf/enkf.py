@@ -127,7 +127,7 @@ class EnsembleKalmanFilter:
     ObservationEquation: callable
     Q: np.ndarray
     R: np.ndarray
-    seed = None
+    seed: int | None = None
 
     def __post_init__(self):
         if self.seed is None:
