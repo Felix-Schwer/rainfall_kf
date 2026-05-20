@@ -93,9 +93,9 @@ class FilterResult:
         for i in range(n_obs):
             ax = axes[i]
             ax.plot(self.times, self.innovations[:, i], label="Innovation")
-            ax.text(0.98, 0.95, f"Mean: {np.mean(self.innovations[:, i]):.2f}\nVar: {np.var(self.innovations[:, i]):.2f}",
-                    transform=ax.transAxes, ha="right", va="top")
-            ax.legend()
+            ax.text(0.99, 0.95, f"Mean: {np.mean(self.innovations[:, i]):.2f}\nVar: {np.var(self.innovations[:, i]):.2f}",
+                    transform=ax.transAxes, ha="right", va="top", bbox=dict(boxstyle="round,pad=0.3",facecolor="white",edgecolor="gray",alpha=0.9))
+            ax.legend(loc='upper left')
         fig.suptitle("Innovations (δ-Residuals)")
         return fig
     
@@ -112,9 +112,9 @@ class FilterResult:
         for i in range(n_obs):
             ax = axes[i]
             ax.plot(self.times, self.whitened_innovations[:, i], label="Whitened Innovation")
-            ax.text(0.98, 0.95, f"Mean: {np.mean(self.whitened_innovations[:, i]):.2f}\nVar: {np.var(self.whitened_innovations[:, i]):.2f}",
+            ax.text(0.99, 0.95, f"Mean: {np.mean(self.whitened_innovations[:, i]):.2f}\nVar: {np.var(self.whitened_innovations[:, i]):.2f}",
                     transform=ax.transAxes, ha="right", va="top", bbox=dict(boxstyle="round,pad=0.3",facecolor="white",edgecolor="gray",alpha=0.9))
-            ax.legend()
+            ax.legend(loc='upper left')
         fig.suptitle("Normalized Innovations (ϵ-Residuals)")
         return fig
 
