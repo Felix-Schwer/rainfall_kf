@@ -127,6 +127,8 @@ class EnsembleKalmanFilter:
     ObservationEquation: callable
     Q: np.ndarray
     R: np.ndarray
+    addGaussInputSig: np.ndarray | None = None
+    mulLognormInputSig: np.ndarray | None = None
     seed: int | None = None
 
     def __post_init__(self):
@@ -135,11 +137,11 @@ class EnsembleKalmanFilter:
         else:
             self.rng = np.random.default_rng(self.seed)
 
-    def predict(self, states: np.ndarray) -> np.ndarray:
+    def predict(self, states: np.ndarray, ens_inputs: np.ndarray) -> np.ndarray:
         """
         Predict the next state of the ensemble using the transition equation and process noise.
         """
-        predicted_states = self.TransitionEquation(states)
+        predicted_states = self.TransitionEquation(states, ens_inputs)
         predicted_states += self.rng.multivariate_normal(mean=np.zeros(self.n_states), cov=self.Q, size=self.EnsembleSize).T
         return predicted_states
     
@@ -165,8 +167,25 @@ class EnsembleKalmanFilter:
         self.result.append(updated_states, np.mean(predicted_observations, axis=1, keepdims=True), innovation, whitened_innovation)
 
         return updated_states
+    
+    def broadcast_input(self, inpt: np.ndarray) -> np.ndarray:
+        inpt = np.asarray(inpt, dtype=float)
+        if inpt.ndim == 1:
+            inpt = inpt.reshape(-1, 1)
+            ens_inputs = np.repeat(inpt, self.EnsembleSize, axis=1)
+        if inpt.shape[1] == 1 and self.EnsembleSize > 1:
+            ens_inputs = np.repeat(inpt, self.EnsembleSize, axis=1)
+        return ens_inputs
+    
+    def apply_input_noise(self, ens_inputs: np.ndarray) -> np.ndarray:
+        if self.addGaussInputSig is not None:
+            ens_inputs += self.rng.normal(loc=0.0, scale=self.addGaussInputSig[:, np.newaxis], size=ens_inputs.shape)
+        if self.mulLognormInputSig is not None:
+            # Shifting mean of underlying normal distribuation ensures multiplicative noise has mean 1.0
+            ens_inputs *= self.rng.lognormal(mean=-(self.mulLognormInputSig[:, np.newaxis]**2)/2, sigma=self.mulLognormInputSig[:, np.newaxis], size=ens_inputs.shape)
+        return ens_inputs
 
-    def run(self, initial_ensemble: np.ndarray, times: np.ndarray, observations: np.ndarray) -> FilterResult:
+    def run(self, initial_ensemble: np.ndarray, times: np.ndarray, inputs: np.ndarray, observations: np.ndarray) -> FilterResult:
         """
         Run the Ensemble Kalman Filter over a sequence of observations.
         """
@@ -175,16 +194,21 @@ class EnsembleKalmanFilter:
         self.result = FilterResult(times=times, observations=observations)
 
         for i, t in enumerate(times):
+            inp = inputs[:, i:i+1]
+            ens_inputs = self.broadcast_input(inp)
+            ens_inputs = self.apply_input_noise(ens_inputs)
             obs = observations[:, i:i+1]
-            predicted_states = self.predict(states)
+            predicted_states = self.predict(states, ens_inputs)
             states = self.update(predicted_states, obs)
 
         self.result.finalize()
 
         return self.result
     
-    def initialize(self, initial_ensemble: np.ndarray, observations: np.ndarray) -> np.ndarray:
+    def initialize(self, initial_ensemble: np.ndarray, times: np.ndarray, inputs: np.ndarray, observations: np.ndarray) -> np.ndarray:
         self.n_states = initial_ensemble.shape[0]
         self.n_obs = observations.shape[0]
+        self.n_inputs = inputs.shape[0]
         self.EnsembleSize = initial_ensemble.shape[1]
+        self.n_steps = len(times)
         return initial_ensemble

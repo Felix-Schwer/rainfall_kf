@@ -39,17 +39,7 @@ def _as_parameter_vector(params: HBVParameters | np.ndarray) -> np.ndarray:
         return params_array.reshape(-1, 1)
     return params_array
 
-
-def _broadcast_inputs(inputs: np.ndarray, ensemble_size: int) -> np.ndarray:
-    inputs_array = np.asarray(inputs, dtype=float)
-    if inputs_array.ndim == 1:
-        inputs_array = inputs_array.reshape(-1, 1)
-    if inputs_array.shape[1] == 1 and ensemble_size > 1:
-        inputs_array = np.repeat(inputs_array, ensemble_size, axis=1)
-    return inputs_array
-
-
-def HBVTransition(states: np.ndarray, inputs: np.ndarray, params: HBVParameters | np.ndarray) -> np.ndarray:
+def HBVTransition(states: np.ndarray, ens_inputs: np.ndarray, params: HBVParameters | np.ndarray) -> np.ndarray:
     """
     Transition function for the HBV rainfall-runoff model.
 
@@ -60,7 +50,6 @@ def HBVTransition(states: np.ndarray, inputs: np.ndarray, params: HBVParameters 
     if states_array.ndim == 1:
         states_array = states_array.reshape(-1, 1)
 
-    inputs_array = _broadcast_inputs(inputs, states_array.shape[1])
     params_array = _as_parameter_vector(params).reshape(-1)
 
     snow = states_array[0:1, :]
@@ -68,10 +57,10 @@ def HBVTransition(states: np.ndarray, inputs: np.ndarray, params: HBVParameters 
     s1 = states_array[2:3, :]
     s2 = states_array[3:4, :]
 
-    temp = inputs_array[0:1, :]
-    prec = inputs_array[1:2, :]
-    temp_m = inputs_array[2:3, :]
-    dpem = inputs_array[3:4, :]
+    temp = ens_inputs[0:1, :]
+    prec = ens_inputs[1:2, :]
+    temp_m = ens_inputs[2:3, :]
+    dpem = ens_inputs[3:4, :]
 
     d, fc, beta, c, k0, l, k1, k2, kp, pwp, tt = params_array
 
