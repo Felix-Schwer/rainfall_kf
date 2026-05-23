@@ -29,15 +29,18 @@ class FilterResult:
     def finalize(self) -> None:
         """Convert lists into stacked numpy arrays (call once after filtering)."""
         self.ensembles = np.stack(self._ensembles, axis=0)
-        self.predicted_observations = np.stack(self._predicted_observations, axis=0)
-        self.innovations = np.stack(self._innovations, axis=0)
-        self.whitened_innovations = np.stack(self._whitened_innovations, axis=0)
+        self.predicted_observations = np.stack(self._predicted_observations, axis=2).squeeze(axis=1)
+        self.innovations = np.stack(self._innovations, axis=2).squeeze(axis=1)
+        self.whitened_innovations = np.stack(self._whitened_innovations, axis=2).squeeze(axis=1)
 
         # free memory of lists
         self._ensembles.clear()
         self._predicted_observations.clear()
         self._innovations.clear()
         self._whitened_innovations.clear()
+
+        self.RMSE = np.mean(self.innovations**2, axis=1)**0.5
+        self.NSE = 1 - np.sum(self.innovations**2, axis=1) / np.sum((self.observations - np.mean(self.observations, axis=1, keepdims=True))**2, axis=1)
 
     def plot_ensembles(self) -> plt.Figure:
         """Plot ensemble trajectories over time."""
@@ -76,7 +79,7 @@ class FilterResult:
         for i in range(n_obs):
             ax = axes[i]
             ax.plot(self.times, self.observations[i], color="blue", label="Measurements")
-            ax.plot(self.times, self.predicted_observations[:, i, 0], color="black", label="Predicted Observations (Ens. mean)")
+            ax.plot(self.times, self.predicted_observations[i,:], color="black", label="Predicted Observations (Ens. mean)")
             ax.legend()
         return fig
     
@@ -92,8 +95,8 @@ class FilterResult:
 
         for i in range(n_obs):
             ax = axes[i]
-            ax.plot(self.times, self.innovations[:, i], label="Innovation")
-            ax.text(0.99, 0.95, f"Mean: {np.mean(self.innovations[:, i]):.2f}\nVar: {np.var(self.innovations[:, i]):.2f}",
+            ax.plot(self.times, self.innovations[i,:], label="Innovation")
+            ax.text(0.99, 0.95, f"Mean: {np.mean(self.innovations[i,:]):.2f}\nVar: {np.var(self.innovations[i,:]):.2f}",
                     transform=ax.transAxes, ha="right", va="top", bbox=dict(boxstyle="round,pad=0.3",facecolor="white",edgecolor="gray",alpha=0.9))
             ax.legend(loc='upper left')
         fig.suptitle("Innovations (δ-Residuals)")
@@ -111,8 +114,8 @@ class FilterResult:
 
         for i in range(n_obs):
             ax = axes[i]
-            ax.plot(self.times, self.whitened_innovations[:, i], label="Whitened Innovation")
-            ax.text(0.99, 0.95, f"Mean: {np.mean(self.whitened_innovations[:, i]):.2f}\nVar: {np.var(self.whitened_innovations[:, i]):.2f}",
+            ax.plot(self.times, self.whitened_innovations[i,:], label="Whitened Innovation")
+            ax.text(0.99, 0.95, f"Mean: {np.mean(self.whitened_innovations[i,:]):.2f}\nVar: {np.var(self.whitened_innovations[i,:]):.2f}",
                     transform=ax.transAxes, ha="right", va="top", bbox=dict(boxstyle="round,pad=0.3",facecolor="white",edgecolor="gray",alpha=0.9))
             ax.legend(loc='upper left')
         fig.suptitle("Normalized Innovations (ϵ-Residuals)")
