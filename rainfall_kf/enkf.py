@@ -189,7 +189,7 @@ class EnsembleKalmanFilter:
         """
         Run the Ensemble Kalman Filter over a sequence of observations.
         """
-        states = self.initialize(initial_ensemble, observations)
+        states = self.initialize(initial_ensemble, times, inputs, observations)
 
         self.result = FilterResult(times=times, observations=observations)
 
