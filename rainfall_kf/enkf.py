@@ -71,7 +71,7 @@ class FilterResult:
         if self.predicted_observations is None:
             raise ValueError("Call finalize() before plotting.")
         
-        n_obs = self.predicted_observations.shape[1]
+        n_obs = self.predicted_observations.shape[0]
 
         fig, axes = plt.subplots(n_obs, 1, figsize=(12, 3*n_obs))
         axes = np.atleast_1d(axes)
@@ -88,7 +88,7 @@ class FilterResult:
         if self.innovations is None:
             raise ValueError("Call finalize() before plotting.")
         
-        n_obs = self.innovations.shape[1]
+        n_obs = self.innovations.shape[0]
 
         fig, axes = plt.subplots(n_obs, 1, figsize=(12, 3*n_obs))
         axes = np.atleast_1d(axes)
@@ -107,7 +107,7 @@ class FilterResult:
         if self.whitened_innovations is None:
             raise ValueError("Call finalize() before plotting.")
         
-        n_obs = self.whitened_innovations.shape[1]
+        n_obs = self.whitened_innovations.shape[0]
 
         fig, axes = plt.subplots(n_obs, 1, figsize=(12, 3*n_obs))
         axes = np.atleast_1d(axes)
