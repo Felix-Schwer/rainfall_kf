@@ -139,7 +139,7 @@ class FilterResult:
             innovation_series = self.whitened_innovations[i,:]
             lags = np.arange(-max_lag, max_lag + 1)
             autocorr = [np.corrcoef(innovation_series[:-lag], innovation_series[lag:])[0,1] if lag != 0 else 1.0 for lag in lags]
-            ax.stem(lags, autocorr, use_line_collection=True)
+            ax.stem(lags, autocorr)
             ax.axhline(-2/np.sqrt(len(self.times)), color='gray', linestyle='--', label='Confidence Bounds')
             ax.axhline(2/np.sqrt(len(self.times)), color='gray', linestyle='--')
             ax.legend()
