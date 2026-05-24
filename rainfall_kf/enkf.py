@@ -160,6 +160,7 @@ class EnsembleKalmanFilter:
     R: np.ndarray
     addGaussInputSig: np.ndarray | None = None
     mulLognormInputSig: np.ndarray | None = None
+    gain_method: str = "pinv" # options: "pinv", "analytic"
     seed: int | None = None
 
     def __post_init__(self):
@@ -186,15 +187,22 @@ class EnsembleKalmanFilter:
         perturbed_pred_observations = predicted_observations + simulated_obs_noises #z_i
 
         U = (predicted_states - np.mean(predicted_states, axis=1, keepdims=True))/ np.sqrt(self.EnsembleSize - 1)
-        V = (perturbed_pred_observations - np.mean(perturbed_pred_observations, axis=1, keepdims=True))/ np.sqrt(self.EnsembleSize - 1)
 
-        #K = U @ np.linalg.pinv(V)
-        K = U @ V.T @ np.linalg.inv(V @ V.T + self.R)
+        if self.gain_method == "pinv":
+            V = (perturbed_pred_observations - np.mean(perturbed_pred_observations, axis=1, keepdims=True))/ np.sqrt(self.EnsembleSize - 1)
+            K = U @ np.linalg.pinv(V)
 
-        updated_states = predicted_states + K @ (observation + simulated_obs_noises - predicted_observations) # x_i pred + K @ (y + v_i - y_i)
+            updated_states = predicted_states + K @ (observation + simulated_obs_noises - predicted_observations) # x_i pred + K @ (y + v_i - y_i)
+            innovation = observation - np.mean(predicted_observations, axis=1, keepdims=True)
+            whitened_innovation = np.linalg.solve(np.linalg.cholesky(V @ V.T), innovation)
 
-        innovation = observation - np.mean(predicted_observations, axis=1, keepdims=True)
-        whitened_innovation = np.linalg.solve(np.linalg.cholesky(V @ V.T), innovation)
+        elif self.gain_method == "analytic":
+            Vm = (predicted_observations - np.mean(predicted_observations, axis=1, keepdims=True))/ np.sqrt(self.EnsembleSize - 1)
+            K = U @ Vm.T @ np.linalg.inv(Vm @ Vm.T + self.R)
+
+            updated_states = predicted_states + K @ (observation - predicted_observations) # x_i pred + K @ (y - y_i)
+            innovation = observation - np.mean(predicted_observations, axis=1, keepdims=True)
+            whitened_innovation = np.linalg.solve(np.linalg.cholesky(Vm @ Vm.T + self.R), innovation)
 
         self.result.append(updated_states, np.mean(predicted_observations, axis=1, keepdims=True), innovation, whitened_innovation)
 
