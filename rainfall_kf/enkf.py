@@ -136,9 +136,13 @@ class FilterResult:
 
         for i in range(n_obs):
             ax = axes[i]
-            innovation_series = self.whitened_innovations[i,:]
+            innovation_series = self.whitened_innovations[i, :]
+            innovation_series = innovation_series - np.mean(innovation_series)
+            acf_full = np.correlate(innovation_series,innovation_series,mode='full')
+            acf_full = acf_full / acf_full[len(innovation_series)-1]
+            mid = len(acf_full) // 2
+            autocorr = acf_full[mid-max_lag : mid+max_lag+1]
             lags = np.arange(-max_lag, max_lag + 1)
-            autocorr = [np.corrcoef(innovation_series[:-lag], innovation_series[lag:])[0,1] if lag != 0 else 1.0 for lag in lags]
             ax.stem(lags, autocorr)
             ax.axhline(-2/np.sqrt(len(self.times)), color='gray', linestyle='--', label='Confidence Bounds')
             ax.axhline(2/np.sqrt(len(self.times)), color='gray', linestyle='--')
@@ -226,6 +230,7 @@ class EnsembleKalmanFilter:
             ens_inputs = self.broadcast_input(inp)
             ens_inputs = self.apply_input_noise(ens_inputs)
             obs = observations[:, i:i+1]
+
             predicted_states = self.predict(states, ens_inputs)
             states = self.update(predicted_states, obs)
 
