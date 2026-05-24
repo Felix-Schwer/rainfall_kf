@@ -52,10 +52,10 @@ def HBVTransition(states: np.ndarray, ens_inputs: np.ndarray, params: HBVParamet
 
     params_array = _as_parameter_vector(params).reshape(-1)
 
-    snow = states_array[0:1, :]
-    soil = states_array[1:2, :]
-    s1 = states_array[2:3, :]
-    s2 = states_array[3:4, :]
+    snow = np.maximum(states_array[0:1, :], 0.0)
+    soil = np.maximum(states_array[1:2, :], 0.0)
+    s1 =  np.maximum(states_array[2:3, :], 0.0)
+    s2 = np.maximum(states_array[3:4, :], 0.0)
 
     temp = ens_inputs[0:1, :]
     prec = ens_inputs[1:2, :]
