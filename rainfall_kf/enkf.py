@@ -81,7 +81,9 @@ class FilterResult:
             ax = axes[i]
             ax.plot(self.times, self.observations[i], color="blue", label="Measurements")
             ax.plot(self.times, self.predicted_observations[i,:], color="black", label="Predicted Observations (Ens. mean)")
-            ax.legend()
+            ax.text(0.99, 0.95, f"RMSE: {self.RMSE[i]:.2f}\nNSE: {self.NSE[i]:.2f}\nVol. Bias: {self.VolBias[i]:.2f}",
+                    transform=ax.transAxes, ha="right", va="top", bbox=dict(boxstyle="round,pad=0.3",facecolor="white",edgecolor="gray",alpha=0.9))
+            ax.legend(loc='upper left')
         return fig
     
     def plot_innovations(self) -> plt.Figure:
@@ -120,6 +122,28 @@ class FilterResult:
                     transform=ax.transAxes, ha="right", va="top", bbox=dict(boxstyle="round,pad=0.3",facecolor="white",edgecolor="gray",alpha=0.9))
             ax.legend(loc='upper left')
         fig.suptitle("Normalized Innovations (ϵ-Residuals)")
+        return fig
+    
+    def plot_autocorrelogram(self, max_lag: int = 10) -> plt.Figure:
+        """Plot autocorrelogram of innovations."""
+        if self.innovations is None:
+            raise ValueError("Call finalize() before plotting.")
+        
+        n_obs = self.whitened_innovations.shape[0]
+
+        fig, axes = plt.subplots(n_obs, 1, figsize=(12, 3*n_obs))
+        axes = np.atleast_1d(axes)
+
+        for i in range(n_obs):
+            ax = axes[i]
+            innovation_series = self.whitened_innovations[i,:]
+            lags = np.arange(-max_lag, max_lag + 1)
+            autocorr = [np.corrcoef(innovation_series[:-lag], innovation_series[lag:])[0,1] if lag != 0 else 1.0 for lag in lags]
+            ax.stem(lags, autocorr, use_line_collection=True)
+            ax.axhline(-2/np.sqrt(len(self.times)), color='gray', linestyle='--', label='Confidence Bounds')
+            ax.axhline(2/np.sqrt(len(self.times)), color='gray', linestyle='--')
+            ax.legend()
+        fig.suptitle("Autocorrelogram of Whitened Innovations")
         return fig
 
 @dataclass()
