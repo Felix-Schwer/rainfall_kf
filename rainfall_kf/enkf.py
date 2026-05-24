@@ -137,7 +137,6 @@ class FilterResult:
         for i in range(n_obs):
             ax = axes[i]
             innovation_series = self.whitened_innovations[i, :]
-            innovation_series = innovation_series - np.mean(innovation_series)
             acf_full = np.correlate(innovation_series,innovation_series,mode='full')
             acf_full = acf_full / acf_full[len(innovation_series)-1]
             mid = len(acf_full) // 2
