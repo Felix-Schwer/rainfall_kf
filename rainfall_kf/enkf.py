@@ -188,7 +188,8 @@ class EnsembleKalmanFilter:
         U = (predicted_states - np.mean(predicted_states, axis=1, keepdims=True))/ np.sqrt(self.EnsembleSize - 1)
         V = (perturbed_pred_observations - np.mean(perturbed_pred_observations, axis=1, keepdims=True))/ np.sqrt(self.EnsembleSize - 1)
 
-        K = U @ np.linalg.pinv(V)
+        #K = U @ np.linalg.pinv(V)
+        K = U @ V.T @ np.linalg.inv(V @ V.T + self.R)
 
         updated_states = predicted_states + K @ (observation + simulated_obs_noises - predicted_observations) # x_i pred + K @ (y + v_i - y_i)
 
