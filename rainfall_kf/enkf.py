@@ -41,6 +41,7 @@ class FilterResult:
 
         self.RMSE = np.mean(self.innovations**2, axis=1)**0.5
         self.NSE = 1 - np.sum(self.innovations**2, axis=1) / np.sum((self.observations - np.mean(self.observations, axis=1, keepdims=True))**2, axis=1)
+        self.VolBias = np.sum(self.innovations, axis=1) / np.sum(self.observations, axis=1)
 
     def plot_ensembles(self) -> plt.Figure:
         """Plot ensemble trajectories over time."""
