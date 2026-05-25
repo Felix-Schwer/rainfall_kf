@@ -1,10 +1,62 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, fields as dataclass_fields
+import operator
 
 import numpy as np
 
+class ParameterSet:
+    def _apply(self, other, op):
+        if isinstance(other, ParameterSet):
+            values = {
+                field.name: op(getattr(self, field.name), getattr(other, field.name))
+                for field in dataclass_fields(self)
+            }
+        else:
+            values = {
+                field.name: op(getattr(self, field.name), other)
+                for field in dataclass_fields(self)
+            }
+        return type(self)(**values)
+
+    def as_array(self) -> np.ndarray:
+        return np.array([getattr(self, field.name) for field in dataclass_fields(self)], dtype=float)
+
+    def __add__(self, other):
+        return self._apply(other, operator.add)
+
+    def __radd__(self, other):
+        return self._apply(other, operator.add)
+
+    def __sub__(self, other):
+        return self._apply(other, operator.sub)
+
+    def __rsub__(self, other):
+        if isinstance(other, ParameterSet):
+            return other._apply(self, operator.sub)
+        return type(self)(**{
+            field.name: operator.sub(other, getattr(self, field.name))
+            for field in dataclass_fields(self)
+        })
+
+    def __mul__(self, other):
+        return self._apply(other, operator.mul)
+
+    def __rmul__(self, other):
+        return self._apply(other, operator.mul)
+
+    def __truediv__(self, other):
+        return self._apply(other, operator.truediv)
+
+    def __rtruediv__(self, other):
+        if isinstance(other, ParameterSet):
+            return other._apply(self, operator.truediv)
+        return type(self)(**{
+            field.name: operator.truediv(other, getattr(self, field.name))
+            for field in dataclass_fields(self)
+        })
+
 
 @dataclass()
-class HBVParameters():
+class HBVParameters(ParameterSet):
     d: float = 0.0
     fc: float = 0.0
     beta: float = 0.0
@@ -17,22 +69,9 @@ class HBVParameters():
     pwp: float = 0.0
     tt: float = 0.0
 
-
-def _as_parameter_vector(params: HBVParameters | np.ndarray) -> np.ndarray:
-    if isinstance(params, HBVParameters):
-        return np.array([
-            params.d,
-            params.fc,
-            params.beta,
-            params.c,
-            params.k0,
-            params.l,
-            params.k1,
-            params.k2,
-            params.kp,
-            params.pwp,
-            params.tt,
-        ], dtype=float).reshape(-1, 1)
+def _as_parameter_vector(params: ParameterSet | np.ndarray) -> np.ndarray:
+    if isinstance(params, ParameterSet):
+        return params.as_array().reshape(-1, 1)
 
     params_array = np.asarray(params, dtype=float)
     if params_array.ndim == 1:
@@ -65,16 +104,14 @@ def HBVTransition(states: np.ndarray, ens_inputs: np.ndarray, params: HBVParamet
     d, fc, beta, c, k0, l, k1, k2, kp, pwp, tt = params_array
 
     below_threshold = temp < tt
-    melt = d * (temp - tt)
-    soil_nonnegative = np.maximum(soil, 0.0)
+    melt = d * np.maximum(temp - tt, 0.0)
 
     snow_next = np.where(below_threshold, snow + prec, np.maximum(snow - melt, 0.0))
-    lwater = np.where(below_threshold, 0.0, prec + np.minimum(snow, melt))
+    lwater = prec + np.minimum(snow, melt)
 
     pe = np.maximum((1.0 + c * (temp - temp_m)) * dpem, 0.0)
-    ea = np.where(soil > pwp, pe, pe * (soil_nonnegative / pwp))
-    dq = lwater * ((soil_nonnegative / fc) ** beta)
-    dq = np.clip(dq, 0.0, lwater)
+    ea = np.where(soil >= pwp, pe, pe * (soil / pwp))
+    dq = lwater * (np.clip(soil / fc, 0.0, 1.0) ** beta)
 
     s1_next = np.maximum(s1 + dq - (np.maximum(0.0, s1 - l) * k0) - (s1 * k1) - (s1 * kp), 0.0)
     s2_next = np.maximum(s2 + (s1 * kp) - (s2 * k2), 0.0)
