@@ -1,4 +1,4 @@
-from hbvedu import HBVObservation, HBVParameters, HBVTransition
+from ..hbvedu import HBVObservation, HBVParameters, HBVTransition
 
 SJV_Sierra_UBParameters = HBVParameters(
     d=6.0,      # typical HBV range: 0.5 – 8 mm/°C/day, snow basins (Alpine/Sierra analog): 2 – 6
