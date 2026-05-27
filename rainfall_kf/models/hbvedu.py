@@ -2,6 +2,8 @@ from dataclasses import dataclass, fields as dataclass_fields
 import operator
 
 import numpy as np
+import xarray as xr
+import pandas as pd
 
 class ParameterSet:
     def _apply(self, other, op):
@@ -68,6 +70,30 @@ class HBVParameters(ParameterSet):
     kp: float = 0.0
     pwp: float = 0.0
     tt: float = 0.0
+
+def monthly_longterm_inputs_fromds(et_ds: xr.Dataset, temp_ds: xr.Dataset, starttime: str | pd.Timestamp, endtime: str | pd.Timestamp) -> tuple[xr.DataArray, xr.DataArray]:
+    time_range = pd.date_range(start=starttime, end=endtime, freq="D")
+    et_ds["et"] = et_ds["et"] / et_ds.time.dt.days_in_month
+    et_ds = (et_ds.reindex(time=time_range, method="ffill"))
+    et_ds.et.attrs["units"] = "mm/day"
+    et_ds.et.attrs["description"] = "Basin-averaged evapotranspiration from OpenET. Simple mean over all data points within each HUC8 basin. Resampled to daily resolution by forward-filling monthly values."
+    et_ds.et.attrs["long_name"] = "Daily downsampled basin-averaged evapotranspiration"
+
+    monthly_temp = temp_ds.tmean.groupby("time.month").mean(dim="time")
+    monthly_temp = monthly_temp.sel(month=temp_ds.time.dt.month)
+    monthly_temp = monthly_temp.assign_coords(time=temp_ds.time)
+    monthly_temp = monthly_temp.drop_vars("month")
+    monthly_temp.attrs["description"] = "Monthly long term basin-averaged mean temperature from PRISM"
+    monthly_temp.attrs["long_name"] = "Monthly long term basin-averaged mean temperature"
+
+    monthly_et = et_ds.et.groupby("time.month").mean(dim="time")
+    monthly_et = monthly_et.sel(month=et_ds.time.dt.month)
+    monthly_et = monthly_et.assign_coords(time=et_ds.time)
+    monthly_et = monthly_et.drop_vars("month")
+    monthly_et.attrs["description"] = "Monthly long term basin-averaged evapotranspiration from OpenET"
+    monthly_et.attrs["long_name"] = "Monthly long term basin-averaged evapotranspiration"
+
+    return monthly_et, monthly_temp
 
 def _as_parameter_vector(params: ParameterSet | np.ndarray) -> np.ndarray:
     if isinstance(params, ParameterSet):

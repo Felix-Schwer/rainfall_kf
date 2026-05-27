@@ -1,4 +1,5 @@
 from .hbvedu import HBVObservation, HBVParameters, HBVTransition
+import numpy as np
 
 SJV_Sierra_UBParameters = HBVParameters(
     d=6.0,      # typical HBV range: 0.5 – 8 mm/°C/day, snow basins (Alpine/Sierra analog): 2 – 6
@@ -32,3 +33,37 @@ SJV_Valley_UBParameters = HBVParameters(
 
 # See comments above, corresponding lower boundary values
 SJV_Valley_LBParameters = HBVParameters(d=1.5, fc=250.0, beta=3.5, c=0.02, k0=0.05, l=3.0, k1=0.02, k2=0.001, kp=0.01, pwp=150.0, tt=-1.0)
+
+def RainfallCorrTransition(states: np.ndarray, ens_inputs: np.ndarray, params: HBVParameters | np.ndarray,
+                           correction: str = 'multiplicative', method: str = 'random_walk', storm_threshold: float | None = None) -> np.ndarray:
+    states_array = np.asarray(states, dtype=float)
+    if states_array.ndim == 1:
+        states_array = states_array.reshape(-1, 1)
+
+    hbv_states = states_array[0:4, :]
+    b = states_array[4:5, :]
+
+    if correction == 'multiplicative':
+        if method == 'random_walk':
+            b_next = b
+        if storm_threshold is not None:
+            storm_mask = ens_inputs[1:2, :] > storm_threshold
+            ens_inputs[1:2, storm_mask] *= b        
+        else:
+            ens_inputs[1:2, :] *= b
+
+    hbv_states_next = HBVTransition(hbv_states, ens_inputs, params)
+
+    return np.vstack([hbv_states_next, b_next])
+
+def RainfallCorrObservation(states: np.ndarray, params: HBVParameters | np.ndarray) -> np.ndarray:
+    states_array = np.asarray(states, dtype=float)
+    if states_array.ndim == 1:
+        states_array = states_array.reshape(-1, 1)
+
+    hbv_states = states_array[0:4, :]
+    b = states_array[4:5, :]
+
+    q = HBVObservation(hbv_states, params)
+
+    return np.vstack([q, b])
