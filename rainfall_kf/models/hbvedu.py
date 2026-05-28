@@ -71,7 +71,7 @@ class HBVParameters(ParameterSet):
     pwp: float = 0.0
     tt: float = 0.0
 
-def monthly_longterm_inputs_fromds(et_ds: xr.Dataset, temp_ds: xr.Dataset, starttime: str | pd.Timestamp, endtime: str | pd.Timestamp) -> tuple[xr.DataArray, xr.DataArray]:
+def processed_inputs_fromds(et_ds: xr.Dataset, temp_ds: xr.Dataset, starttime: str | pd.Timestamp, endtime: str | pd.Timestamp) -> tuple[xr.Dataset, tuple[xr.DataArray, xr.DataArray]]:
     time_range = pd.date_range(start=starttime, end=endtime, freq="D")
     et_ds["et"] = et_ds["et"] / et_ds.time.dt.days_in_month
     et_ds = (et_ds.reindex(time=time_range, method="ffill"))
@@ -93,7 +93,7 @@ def monthly_longterm_inputs_fromds(et_ds: xr.Dataset, temp_ds: xr.Dataset, start
     monthly_et.attrs["description"] = "Monthly long term basin-averaged evapotranspiration from OpenET"
     monthly_et.attrs["long_name"] = "Monthly long term basin-averaged evapotranspiration"
 
-    return monthly_et, monthly_temp
+    return et_ds, (monthly_et, monthly_temp)
 
 def _as_parameter_vector(params: ParameterSet | np.ndarray) -> np.ndarray:
     if isinstance(params, ParameterSet):
