@@ -167,4 +167,5 @@ def HBVObservation(states: np.ndarray, params: HBVParameters | np.ndarray) -> np
     s1_prev = states_array[4:5, :]
 
     q = (np.maximum(0.0, s1_prev - l) * k0) + (s1 * k1) + (s2 * k2)
+
     return q

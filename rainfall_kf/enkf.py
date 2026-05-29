@@ -6,35 +6,53 @@ import numpy as np
 class FilterResult:
     """Container for filter history and diagnostics (efficient version)."""
     _ensembles: list[np.ndarray] = field(default_factory=list, init=False, repr=False)
+    _feedbacks: list[np.ndarray] = field(default_factory=list, init=False, repr=False)
+    _ens_inputs: list[np.ndarray] = field(default_factory=list, init=False, repr=False)
+    _simulated: list[np.ndarray] = field(default_factory=list, init=False, repr=False)
     _predicted_observations: list[np.ndarray] = field(default_factory=list, init=False, repr=False)
     _innovations: list[np.ndarray] = field(default_factory=list, init=False, repr=False)
     _whitened_innovations: list[np.ndarray] = field(default_factory=list, init=False, repr=False)
 
     times: np.ndarray
     observations: np.ndarray
+    inputs: np.ndarray
 
     ensembles: np.ndarray | None = field(default=None, init=False)
+    feedbacks: np.ndarray | None = field(default=None, init=False)
+    ens_inputs: np.ndarray | None = field(default=None, init=False)
+    simulated: np.ndarray | None = field(default=None, init=False)
     predicted_observations: np.ndarray | None = field(default=None, init=False)
     innovations: np.ndarray | None = field(default=None, init=False)
     whitened_innovations: np.ndarray | None = field(default=None, init=False)
 
-    def append(self, ensemble: np.ndarray, predicted_observation: np.ndarray, innovation: np.ndarray, whitened_innovation: np.ndarray, ) -> None:
+    def append(self, ensemble: np.ndarray, feedback: np.ndarray, simulated: np.ndarray, predicted_observation: np.ndarray, innovation: np.ndarray, whitened_innovation: np.ndarray, ) -> None:
         """Store one time step."""
 
         self._ensembles.append(np.asarray(ensemble, dtype=float))
+        self._feedbacks.append(np.asarray(feedback, dtype=float))
+        self._simulated.append(np.asarray(simulated, dtype=float))
         self._predicted_observations.append(np.asarray(predicted_observation, dtype=float))
         self._innovations.append(np.asarray(innovation, dtype=float))
         self._whitened_innovations.append(np.asarray(whitened_innovation, dtype=float))
 
+    def append_inputs(self, ens_inputs: np.ndarray) -> None:
+        self._ens_inputs.append(np.asarray(ens_inputs, dtype=float))
+
     def finalize(self) -> None:
         """Convert lists into stacked numpy arrays (call once after filtering)."""
         self.ensembles = np.stack(self._ensembles, axis=0)
+        self.feedbacks = np.stack(self._feedbacks, axis=0)
+        self.ens_inputs = np.stack(self._ens_inputs, axis=0)
+        self.simulated = np.stack(self._simulated, axis=0)
         self.predicted_observations = np.stack(self._predicted_observations, axis=2).squeeze(axis=1)
         self.innovations = np.stack(self._innovations, axis=2).squeeze(axis=1)
         self.whitened_innovations = np.stack(self._whitened_innovations, axis=2).squeeze(axis=1)
 
         # free memory of lists
         self._ensembles.clear()
+        self._feedbacks.clear()
+        self._ens_inputs.clear()
+        self._simulated.clear()
         self._predicted_observations.clear()
         self._innovations.clear()
         self._whitened_innovations.clear()
@@ -175,6 +193,9 @@ class EnsembleKalmanFilter:
         """
         predicted_states = self.TransitionEquation(states, ens_inputs)
         predicted_states += self.rng.multivariate_normal(mean=np.zeros(self.n_states), cov=self.Q, size=self.EnsembleSize).T
+
+        if self.addGaussInputSig is not None or self.mulLognormInputSig is not None:
+            self.result.append_inputs(ens_inputs)
         return predicted_states
     
     def update(self, predicted_states: np.ndarray, observation: np.ndarray) -> np.ndarray:
@@ -204,7 +225,9 @@ class EnsembleKalmanFilter:
             innovation = observation - np.mean(predicted_observations, axis=1, keepdims=True)
             whitened_innovation = np.linalg.solve(np.linalg.cholesky(Vm @ Vm.T + self.R), innovation)
 
-        self.result.append(updated_states, np.mean(predicted_observations, axis=1, keepdims=True), innovation, whitened_innovation)
+        self.result.append(updated_states, updated_states - predicted_states,
+                           predicted_observations,
+                           np.mean(predicted_observations, axis=1, keepdims=True), innovation, whitened_innovation)
 
         return updated_states
     
@@ -231,7 +254,7 @@ class EnsembleKalmanFilter:
         """
         states = self.initialize(initial_ensemble, times, inputs, observations)
 
-        self.result = FilterResult(times=times, observations=observations)
+        self.result = FilterResult(times=times, inputs=inputs, observations=observations)
 
         for i, t in enumerate(times):
             inp = inputs[:, i:i+1]

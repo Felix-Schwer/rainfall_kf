@@ -35,22 +35,43 @@ SJV_Valley_UBParameters = HBVParameters(
 SJV_Valley_LBParameters = HBVParameters(d=1.5, fc=250.0, beta=3.5, c=0.02, k0=0.05, l=3.0, k1=0.02, k2=0.001, kp=0.01, pwp=150.0, tt=-1.0)
 
 def RainfallCorrTransition(states: np.ndarray, ens_inputs: np.ndarray, params: HBVParameters | np.ndarray,
-                           correction: str = 'multiplicative', method: str = 'random_walk', storm_threshold: float | None = None) -> np.ndarray:
+                           correction: str = 'multiplicative', method: str = 'random_walk', storm_threshold: float | None = None, **kwargs) -> np.ndarray:
     states_array = np.asarray(states, dtype=float)
     if states_array.ndim == 1:
         states_array = states_array.reshape(-1, 1)
 
-    hbv_states = states_array[0:4, :]
-    b = states_array[4:5, :]
+    hbv_states = states_array[0:5, :]
+    b = states_array[5:6, :]
+
+    if method == 'random_walk':
+        get_next_b = lambda b: b
+    elif method == 'autoregressive':
+        phi = kwargs.get('phi', 0.8)
+        get_next_b = lambda b: phi * b
 
     if correction == 'multiplicative':
-        if method == 'random_walk':
-            b_next = b
+        b_next = np.maximum(get_next_b(b), 0)
         if storm_threshold is not None:
-            storm_mask = ens_inputs[1:2, :] > storm_threshold
-            ens_inputs[1:2, storm_mask] *= b        
+            storm_mask = (ens_inputs[1, :] > storm_threshold)
+            ens_inputs[1:2, storm_mask] *= 1 + b_next[:, storm_mask]
         else:
-            ens_inputs[1:2, :] *= b
+            ens_inputs[1:2, :] *= 1 + b
+
+    if correction == 'logmul':
+        b_next = get_next_b(b)
+        if storm_threshold is not None:
+            storm_mask = (ens_inputs[1, :] > storm_threshold)
+            ens_inputs[1:2, storm_mask] *= np.exp(b_next[:, storm_mask])
+        else:
+            ens_inputs[1:2, :] *= np.exp(b)
+
+    if correction == 'additive':
+        b_next = get_next_b(b)
+        if storm_threshold is not None:
+            storm_mask = (ens_inputs[1, :] > storm_threshold)
+            ens_inputs[1:2, storm_mask] += b_next[:, storm_mask]
+        else:
+            ens_inputs[1:2, :] += b_next
 
     hbv_states_next = HBVTransition(hbv_states, ens_inputs, params)
 
@@ -61,8 +82,8 @@ def RainfallCorrObservation(states: np.ndarray, params: HBVParameters | np.ndarr
     if states_array.ndim == 1:
         states_array = states_array.reshape(-1, 1)
 
-    hbv_states = states_array[0:4, :]
-    b = states_array[4:5, :]
+    hbv_states = states_array[0:5, :]
+    b = states_array[5:6, :]
 
     q = HBVObservation(hbv_states, params)
 
