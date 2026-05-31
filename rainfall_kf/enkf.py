@@ -7,6 +7,7 @@ class FilterResult:
     """Container for filter history and diagnostics (efficient version)."""
     _ensembles: list[np.ndarray] = field(default_factory=list, init=False, repr=False)
     _feedbacks: list[np.ndarray] = field(default_factory=list, init=False, repr=False)
+    _k: list[np.ndarray] = field(default_factory=list, init=False, repr=False)
     _ens_inputs: list[np.ndarray] = field(default_factory=list, init=False, repr=False)
     _simulated: list[np.ndarray] = field(default_factory=list, init=False, repr=False)
     _predicted_observations: list[np.ndarray] = field(default_factory=list, init=False, repr=False)
@@ -19,17 +20,19 @@ class FilterResult:
 
     ensembles: np.ndarray | None = field(default=None, init=False)
     feedbacks: np.ndarray | None = field(default=None, init=False)
+    k: np.ndarray | None = field(default=None, init=False)
     ens_inputs: np.ndarray | None = field(default=None, init=False)
     simulated: np.ndarray | None = field(default=None, init=False)
     predicted_observations: np.ndarray | None = field(default=None, init=False)
     innovations: np.ndarray | None = field(default=None, init=False)
     whitened_innovations: np.ndarray | None = field(default=None, init=False)
 
-    def append(self, ensemble: np.ndarray, feedback: np.ndarray, simulated: np.ndarray, predicted_observation: np.ndarray, innovation: np.ndarray, whitened_innovation: np.ndarray, ) -> None:
+    def append(self, ensemble: np.ndarray, feedback: np.ndarray, k: np.ndarray, simulated: np.ndarray, predicted_observation: np.ndarray, innovation: np.ndarray, whitened_innovation: np.ndarray, ) -> None:
         """Store one time step."""
 
         self._ensembles.append(np.asarray(ensemble, dtype=float))
         self._feedbacks.append(np.asarray(feedback, dtype=float))
+        self._k.append(np.asarray(k, dtype=float))
         self._simulated.append(np.asarray(simulated, dtype=float))
         self._predicted_observations.append(np.asarray(predicted_observation, dtype=float))
         self._innovations.append(np.asarray(innovation, dtype=float))
@@ -42,6 +45,7 @@ class FilterResult:
         """Convert lists into stacked numpy arrays (call once after filtering)."""
         self.ensembles = np.stack(self._ensembles, axis=0)
         self.feedbacks = np.stack(self._feedbacks, axis=0)
+        self.k = np.stack(self._k, axis=0)
         self.ens_inputs = np.stack(self._ens_inputs, axis=0)
         self.simulated = np.stack(self._simulated, axis=0)
         self.predicted_observations = np.stack(self._predicted_observations, axis=2).squeeze(axis=1)
@@ -51,6 +55,7 @@ class FilterResult:
         # free memory of lists
         self._ensembles.clear()
         self._feedbacks.clear()
+        self._k.clear()
         self._ens_inputs.clear()
         self._simulated.clear()
         self._predicted_observations.clear()
@@ -225,7 +230,7 @@ class EnsembleKalmanFilter:
             innovation = observation - np.mean(predicted_observations, axis=1, keepdims=True)
             whitened_innovation = np.linalg.solve(np.linalg.cholesky(Vm @ Vm.T + self.R), innovation)
 
-        self.result.append(updated_states, updated_states - predicted_states,
+        self.result.append(updated_states, updated_states - predicted_states, K,
                            predicted_observations,
                            np.mean(predicted_observations, axis=1, keepdims=True), innovation, whitened_innovation)
 
